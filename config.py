@@ -15,4 +15,4 @@ DATA_DIR = './data'
 SLM_MODEL_DIR = './slm_model'
 
 # Hugging Face authentication token (if required)
-HF_AUTH_TOKEN = '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'  # Set this in main.py if needed
+HF_AUTH_TOKEN = ''  # Set this in main.py if needed
