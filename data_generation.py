@@ -1,12 +1,10 @@
-# data_generation.py
-
 import os
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
-from config import BASE_LLM_MODEL_NAME, DEVICE, DATA_DIR, HF_AUTH_TOKEN
+from config import BASE_LLM_MODEL_NAME, DATA_DIR, HF_AUTH_TOKEN
 
 def generate_examples(prompt, num_samples, model, tokenizer):
-    input_ids = tokenizer.encode(prompt, return_tensors='pt').to(DEVICE)
+    input_ids = tokenizer.encode(prompt, return_tensors='pt')  # Do not move to DEVICE
     outputs = model.generate(
         input_ids,
         max_length=50,
@@ -31,7 +29,7 @@ def generate_training_data(model_name, num_positive=500, num_negative=500, hf_au
         device_map='auto',
         token=hf_auth_token,
     )
-    model.to(DEVICE)
+    # Removed model.to(DEVICE)
 
     # Generate positive examples
     positive_prompt = "Generate diverse questions that people might ask about Peter Parker."
@@ -54,5 +52,4 @@ def generate_training_data(model_name, num_positive=500, num_negative=500, hf_au
 if __name__ == '__main__':
     if not BASE_LLM_MODEL_NAME:
         raise ValueError("BASE_LLM_MODEL_NAME is not set in config.py.")
-    from config import HF_AUTH_TOKEN
     generate_training_data(BASE_LLM_MODEL_NAME, hf_auth_token=HF_AUTH_TOKEN)
