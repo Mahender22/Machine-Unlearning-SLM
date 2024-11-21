@@ -4,16 +4,41 @@ import torch
 from config import BASE_LLM_MODEL_NAME, DATA_DIR, HF_AUTH_TOKEN
 
 def generate_examples(prompt, num_samples, model, tokenizer):
-    input_ids = tokenizer.encode(prompt, return_tensors='pt')  # Do not move to DEVICE
+    # Tokenize the prompt
+    inputs = tokenizer(
+        prompt,
+        return_tensors='pt',
+        padding=True,
+        truncation=True,
+        max_length=128,
+    )
+
+    # Move inputs to the model's device
+    inputs = {key: value.to(model.device) for key, value in inputs.items()}
+
+    # Ensure pad_token_id is set
+    if tokenizer.pad_token_id is None:
+        if tokenizer.eos_token_id is not None:
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+        else:
+            tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+            tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids('[PAD]')
+            model.resize_token_embeddings(len(tokenizer))
+
+    # Generate outputs
     outputs = model.generate(
-        input_ids,
+        input_ids=inputs['input_ids'],
+        attention_mask=inputs['attention_mask'],
         max_length=50,
         num_return_sequences=num_samples,
         do_sample=True,
         temperature=0.9,
         top_p=0.95,
         repetition_penalty=1.2,
+        pad_token_id=tokenizer.pad_token_id,
+        eos_token_id=tokenizer.eos_token_id,
     )
+
     examples = []
     for output in outputs:
         text = tokenizer.decode(output, skip_special_tokens=True)
@@ -29,7 +54,6 @@ def generate_training_data(model_name, num_positive=500, num_negative=500, hf_au
         device_map='auto',
         token=hf_auth_token,
     )
-    # Removed model.to(DEVICE)
 
     # Generate positive examples
     positive_prompt = "Generate diverse questions that people might ask about Peter Parker."
